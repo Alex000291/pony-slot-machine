@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register</title>
+</head>
+<body>
+  <h1>Register</h1>
+  <div>
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button id="registerButton">Register</button>
+  </div>
+  <div>
+    <a href="/login">Login</a>
+  </div>
+  <script>
+    const registerButton = document.getElementById('registerButton');
+    registerButton.addEventListener('click', async () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Registration successful');
+        window.location.href = '/login';
+      } else {
+        alert('Registration failed');
+      }
+    });
+  </script>
+</body>
+</html>

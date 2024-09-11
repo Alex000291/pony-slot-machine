@@ -1,0 +1,284 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slots</title>
+</head>
+<body style="background-color: #f5f5f5;">
+  <nav style="background-color: #001f3f;display:flex;align-items: flex-end;padding:15px;">
+
+    <button id="deposit" style="color:white;border:none;background-color: transparent;">deposit</button>
+    <div id="depositTooltip" style="display:none;background-color: white;border: 1px solid #ccc;padding: 5px;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);z-index: 1000;">
+      <div id="address"></div>
+    </div>
+
+    <button id="withdrawButton" style="color:white;border:none;background-color: transparent;">withdraw</button>
+    <div id="withdrawTooltip" style="display:none;">
+      <button id="withdraw">withdraw</button>
+      <input type="text" placeholder="amount in satoshi" id="withdrawAmount">
+      <input type="text" placeholder="your btc address" id="withdrawAddress">
+    </div>
+
+
+    <button id="balance"  style="color:white;border:none;background-color: transparent;">balance</button>
+
+    <button id="info" style="color:white;border:none;background-color: transparent;">info</button>
+    <div id="infoTooltip" style="display: none;color: white;">
+      2 same = 2x, 3 same = 15x. have fun!
+    </div>
+
+    <button id="credit" style="color:white;border:none;background-color: transparent;">credit</button>
+    <div id="creditTooltip" style="display: none;color: white;">
+      https://www.deviantart.com/fluffytuzki/gallery
+    </div>
+
+    <button id="logout"  style="color:white;border:none;background-color: transparent;">logout</button>
+  </nav>
+
+  <div style="background-color: #ffffff;">
+
+  <div id="slots" style="display:flex;justify-content: space-around;align-items: center;height:300px;max-width: 1200px;">
+    <div id="slot1"></div>
+    <div id="slot2"></div>
+    <div id="slot3"></div>
+
+  </div style="display:flex;justify-content:center;">  
+  <button id="increaseBet" style="color:black;border:none;background-color: transparent;display: inline;">+</button>
+  <div id="amount" style="color:black;border:none;background-color: transparent;display: inline;">bet: 100</div>
+  <button id="decreaseBet" style="color:black;border:none;background-color: transparent;display: inline;">-</button>
+  <button id="spin" style="color:black;border:none;background-color: transparent;display: inline;">spin</button>
+
+  </div>
+
+  <script>
+    const deposit = document.getElementById('deposit');
+    const address = document.getElementById('address');
+    const withdrawBtn = document.getElementById('withdraw');
+    const balance = document.getElementById('balance');
+    const amount = document.getElementById('amount');
+    const info = document.getElementById('info');
+    const credit = document.getElementById('credit');
+    const logout = document.getElementById('logout');
+    let bet = 100;
+    const increase = document.getElementById('increaseBet');
+    const decrease = document.getElementById('decreaseBet');
+    const spin = document.getElementById('spin');
+
+    const depositTooltip = document.getElementById('depositTooltip');
+    const withdrawTooltip = document.getElementById('withdrawTooltip');
+
+    const withdrawButton = document.getElementById('withdrawButton');
+
+
+
+    const username = '<%= username %>'; 
+
+    deposit.addEventListener('click', () => {
+
+    if (localStorage.getItem('lastAddrTime')) {
+      const lastAddrTime = localStorage.getItem('lastAddrTime');
+      const currentTime = Date.now();
+      const diff = currentTime - lastAddrTime;
+      if (diff < 30 * 60 * 1000) {
+        address.innerHTML = localStorage.getItem('lastAddr');
+        depositTooltip.style.display = 'block';
+        withdrawTooltip.style.display = 'none';
+        return;
+      }
+    }
+
+    fetch('/deposit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username: username })
+    })
+    .then(res => res.json())
+    .then(data => {
+      address.innerHTML = `deposit to: ${data}`;
+
+      depositTooltip.style.display = 'block';
+      withdrawTooltip.style.display = 'none';
+
+      localStorage.setItem('lastAddrTime', Date.now());
+      localStorage.setItem('lastAddr', address.innerHTML);
+    });
+
+    alert('this address is valid for 30 minutes and for 1 time use only, do not logout before deposit confirm or you may lose your deposit');
+ 
+    alert('please do not deposit less than 3600 satoshi');
+    });
+
+    function settleDeposit() {
+      fetch('/settleDeposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username })
+      })
+      .then(res => res.json())
+      .then(data => {
+ 
+        if (data.success) {
+          alert('deposit settled');
+          localStorage.removeItem('lastAddrTime');
+        }
+      });
+    }
+
+    function getBalance() {
+      fetch('/getBalance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username })
+      })
+      .then(res => res.json())
+      .then(data => {
+        balance.innerHTML = `balance: ${data} satoshi`;
+      });
+
+      depositTooltip.style.display = 'none';
+      withdrawTooltip.style.display = 'none';
+
+    }
+
+    withdrawButton.addEventListener('click', () => {
+      depositTooltip.style.display = 'none';
+      withdrawTooltip.style.display = 'block';
+    });
+
+    logout.addEventListener('click', () => {
+      fetch('/logout', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(res => {
+        if(res.ok)
+          localStorage.clear();
+          window.location.href = '/login';
+      });
+    });
+
+    function withdraw() { 
+
+      withdrawAddress = document.getElementById('withdrawAddress').value;
+      withdrawAmount = document.getElementById('withdrawAmount').value;
+
+      if (withdrawAmount < 3600) {
+        alert('please do not withdraw less than 3600 satoshi');
+        return;
+      }
+
+     
+
+      fetch('/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username, address: withdrawAddress, amount: withdrawAmount })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(`withdraw success, details at https://blockchair.com/bitcoin/transaction/${data.tx_hash}`);
+        }
+      });
+
+    }
+
+    info.addEventListener('click', () => {
+      const infoTooltip = document.getElementById('infoTooltip');
+      infoTooltip.style.display = infoTooltip.style.display === 'none' ? 'block' : 'none';
+    });
+
+    credit.addEventListener('click', () => {
+      const creditTooltip = document.getElementById('creditTooltip');
+      creditTooltip.style.display = creditTooltip.style.display === 'none' ? 'block' : 'none';
+    });
+
+    function increaseBet() {
+      if (bet < 10000){
+        bet += 100;
+        amount.innerHTML = `bet: ${bet}`;
+      }
+
+    }
+
+    function decreaseBet() {
+      if (bet > 100) {
+        bet -= 100;
+        amount.innerHTML = `bet: ${bet}`;
+      }
+    }
+
+    function spinWheel() {
+      fetch('/spin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username, bet: bet })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log(data)
+        if (data.success) {
+          displaySlots(data.slot1, data.slot2, data.slot3);
+          getBalance();
+        }
+      });
+    }
+
+    function displaySlots(slot1, slot2, slot3) {
+      const slot1Element = document.getElementById('slot1');
+      const slot2Element = document.getElementById('slot2');
+      const slot3Element = document.getElementById('slot3');
+
+      const slots = [slot1Element, slot2Element, slot3Element];
+      slots.forEach(slot => {
+        slot.style.width = '207px';
+        slot.style.height = '259px';
+        slot.style.backgroundColor = 'gray'; // 修正拼写错误
+        slot.style.backgroundSize = 'cover';
+        slot.style.backgroundPosition = 'center';
+      });
+
+      let isVisible = true;
+      const flash = setInterval(() => {
+        slots.forEach(slot => {
+          slot.style.visibility = isVisible ? 'hidden' : 'visible';
+        });
+        isVisible = !isVisible;
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(flash);
+        slots.forEach(slot => {
+          slot.style.visibility = 'visible';
+          slot.style.backgroundColor = '';
+        });
+        slot1Element.style.backgroundImage = `url('/${slot1}.png')`; // 修正背景图像设置
+        slot2Element.style.backgroundImage = `url('/${slot2}.png')`;
+        slot3Element.style.backgroundImage = `url('/${slot3}.png')`;
+      }, 1500);
+}
+
+    increase.addEventListener('click', increaseBet);
+    decrease.addEventListener('click', decreaseBet);
+
+    withdrawBtn.addEventListener('click', withdraw);
+    balance.addEventListener('click', getBalance);
+    spin.addEventListener('click', spinWheel);
+ 
+
+    setInterval(settleDeposit, 30 * 1000);
+    setInterval(getBalance, 30 * 1000);
+
+  </script>
+</body>
+</html>
